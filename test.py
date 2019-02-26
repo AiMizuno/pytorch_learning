@@ -23,3 +23,13 @@ print(
     '\nnumpy: ', np.mean(data),         # 0.0
     '\ntorch: ', torch.mean(tensor)     # 0.0
 )
+
+# matrix multiplication 矩阵点乘
+data = [[1,2], [3,4]]
+tensor = torch.FloatTensor(data)  # 转换成32位浮点 tensor
+# correct method
+print(
+    '\nmatrix multiplication (matmul)',
+    '\nnumpy: ', np.matmul(data, data),     # [[7, 10], [15, 22]]
+    '\ntorch: ', torch.mm(tensor, tensor)   # [[7, 10], [15, 22]]
+)
