@@ -10,3 +10,8 @@ t_out = torch.mean(tensor*tensor)       # x^2
 v_out = torch.mean(variable*variable)   # x^2
 print(t_out)
 print(v_out)    # 7.5
+
+v_out.backward()
+print(variable.grad)
+
+print(variable.data)
