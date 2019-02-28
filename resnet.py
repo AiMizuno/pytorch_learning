@@ -1,9 +1,30 @@
-#-*-coding:utf-8-*-
+# -*-coding:utf-8-*-
 import torch.nn as nn
 import torchvision
-from tensorboardX import SummaryWriter
-from torch.autograd import Variable
-import torch
+import torchvision.transforms as transforms
+import torch.utils.data as Data
+import torch.nn.functional as F
+from homura import optim, lr_scheduler, callbacks, reporter
+from homura.trainers import SupervisedTrainer as Trainer
+
+# Hyper Parameters
+transform = transforms.Compose(
+    [transforms.ToTensor(),
+     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+train_data = torchvision.datasets.CIFAR10(
+    root='./cifar10',
+    train=True,
+    download=True,
+    transform=transform
+)
+
+test_data = torchvision.datasets.CIFAR10(
+    root='./cifar10',
+    train=False,
+    download=True,
+    transform=transform
+)
 
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -138,11 +159,26 @@ class PreActResNet(ResNet):
         return x
 
 
-input_data = Variable(torch.rand(16, 3, 224, 224))
-model = ResNet(BasicBlock, 3)
-# net = torchvision.models.resnet18()
-# print(model)
-writer = SummaryWriter(log_dir='./log', comment='resnet18')
-with writer:
-    writer.add_graph(model, (input_data,))
-writer.close()
+def main():
+    train_loader = Data.DataLoader(train_data, batch_size=64, shuffle=True, num_workers=2)
+    test_loader = Data.DataLoader(test_data, batch_size=54, shuffle=False, num_workers=2)
+
+    model = ResNet(BasicBlock, 3)
+    optimizer = optim.SGD(lr=1e-1, momentum=0.9, weight_decay=1e-4)
+    scheduler = lr_scheduler.StepLR(80, 0.1)
+    tqdm_rep = reporter.TQDMReporter(range(args.epochs), callbacks=[callbacks.AccuracyCallback()])
+    trainer = Trainer(model, optimizer, F.cross_entropy, scheduler=scheduler, callbacks=[tqdm_rep])
+    for _ in tqdm_rep:
+        trainer.train(train_loader)
+        trainer.test(test_loader)
+
+if __name__ == '__main__':
+    import argparse
+
+    p = argparse.ArgumentParser()
+    p.add_argument("--epochs", type=int, default=200)
+    p.add_argument("--batch_size", type=int, default=64)
+    p.add_argument("--reduction", type=int, default=16)
+    p.add_argument("--baseline", action="store_true")
+    args = p.parse_args()
+    main()
